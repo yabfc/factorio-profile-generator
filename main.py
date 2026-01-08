@@ -5,7 +5,6 @@ import os
 import dataclasses
 from typing import Optional
 
-
 @dataclasses.dataclass
 class BaseItemIo:
     id: str
@@ -16,11 +15,13 @@ class BaseItemIo:
 @dataclasses.dataclass
 class Recipe:
     id: str
-    inp: list[BaseItemIo]
+    inp: list[BaseItemIo] = dataclasses.field(metadata={"alias": "in"})
     out: list[BaseItemIo]
     duration: int
     category: str
     priority: int
+    available: bool
+    planetLimitations: list[str] | None
 
 
 @dataclasses.dataclass
@@ -44,6 +45,8 @@ class Machine:
     recipeCategories: list[str]
     requiredPower: int
     features: list[MachineFeature]
+    available: bool
+    planetLimitations: list[str] | None
 
 
 @dataclasses.dataclass
@@ -59,6 +62,13 @@ class EffectModule:
     id: str
     modifiers: list[Modifier]
     perSlot: bool
+    available: bool
+
+
+@dataclasses.dataclass
+class Planet:
+    id: str
+    pressure: int
 
 
 def get_machine_effects(old_effects: dict) -> list[EffectModule]:
@@ -66,7 +76,7 @@ def get_machine_effects(old_effects: dict) -> list[EffectModule]:
     for id, modifier in old_effects.items():
         if not id.split("-")[-1].isdigit():
             id += "-1"
-        tmp = EffectModule(id, [], True)
+        tmp = EffectModule(id, [], True, True)
         for eid, effect in modifier["effect"].items():
             if "productivity" in id and eid == "speed":
                 tmp.modifiers.append(Modifier(eid, effect, False, True))
@@ -76,18 +86,43 @@ def get_machine_effects(old_effects: dict) -> list[EffectModule]:
     return out
 
 
-def get_machines(old_machines: dict) -> tuple[list[Machine], list[EffectModule]]:
+def get_machines(
+    old_machines: dict, planets: list[Planet]
+) -> tuple[list[Machine], list[EffectModule]]:
     out = []
     effects = []
     for id, machine in old_machines.items():
         # power is always in kW - this cuts kW from the string
-        requiredPower = int("".join(c for c in machine["energy_usage"] if c.isdigit())) * 1000
-        tmp = Machine(id, machine["crafting_categories"], requiredPower, [])
-        moduleSlots = 1 if "module_slots" not in machine.keys() else machine["module_slots"]
-        tmp.features.append(MachineFeature("modules", moduleSlots, machine["allowed_effects"]))
-        tmp.features.append(MachineFeature("crafting-speed",0,[f"crafting-speed-{id}"]))
+        requiredPower = (
+            int("".join(c for c in machine["energy_usage"] if c.isdigit())) * 1000
+        )
+        tmp = Machine(id, machine["crafting_categories"], requiredPower, [], True, None)
+        if "surface_conditions" in machine.keys():
+            for condition in machine["surface_conditions"]:
+                if condition.get("property", "") == "pressure":
+                    tmp.planetLimitations = get_allowed_planets(condition, planets)
+                    break
+        moduleSlots = machine.get("module_slots", 1)
+        tmp.features.append(
+            MachineFeature("modules", moduleSlots, machine["allowed_effects"])
+        )
+        tmp.features.append(
+            MachineFeature("crafting-speed", 0, [f"crafting-speed-{id}"])
+        )
         out.append(tmp)
-        craft_effect = EffectModule(f"crafting-speed-{id}", [Modifier("speed", machine["crafting_speed"], False, True,)], True)
+        craft_effect = EffectModule(
+            f"crafting-speed-{id}",
+            [
+                Modifier(
+                    "speed",
+                    machine["crafting_speed"],
+                    False,
+                    True,
+                )
+            ],
+            True,
+            True,
+        )
         effects.append(craft_effect)
     return (out, effects)
 
@@ -107,21 +142,26 @@ def get_items(old_items: dict) -> list[Item]:
     return out
 
 
-def get_recipes(old_recipes: dict) -> list[Recipe]:
+def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
     out = []
     for id, recipe in old_recipes.items():
         if "hidden" in recipe.keys() and recipe["hidden"]:
             continue
 
-        category = "default" if "category" not in recipe.keys() else recipe["category"]
+        category = recipe.get("category", "default")
         if category == "parameters":
             continue
-        duration = 1 if "energy_required" not in recipe.keys() else recipe["energy_required"]
+        duration = recipe.get("energy_required", 1)
         if "-barrel" in id:
             prio = 30
         else:
             prio = 10
-        tmp = Recipe(id, [], [], duration, category, prio)
+        tmp = Recipe(id, [], [], duration, category, prio, True, None)
+        if "surface_conditions" in recipe.keys():
+            for condition in recipe["surface_conditions"]:
+                if condition.get("property", "") == "pressure":
+                    tmp.planetLimitations = get_allowed_planets(condition, planets)
+                    break
         for ingredient in recipe["ingredients"]:
             tmp.inp.append(
                 BaseItemIo(ingredient["name"], ingredient["type"], ingredient["amount"])
@@ -132,8 +172,66 @@ def get_recipes(old_recipes: dict) -> list[Recipe]:
     return out
 
 
+def get_allowed_planets(condition: dict, planets: list[Planet]) -> list[str] | None:
+    if "min" in condition.keys() and "max" in condition.keys():
+        pressure_range = range(condition["min"], condition["max"] + 1)
+        return [p.id for p in planets if p.pressure in pressure_range]
+    elif "min" in condition.keys():
+        return [p.id for p in planets if p.pressure >= condition["min"]]
+    elif "max" in condition.keys():
+        return [p.id for p in planets if p.pressure <= condition["max"]]
+    return None
+
+
+def get_planets(old_planets: dict, default_pressure: int) -> list[Planet]:
+    out = []
+    for id, planet in old_planets.items():
+        out.append(
+            Planet(
+                id,
+                planet.get("surface_properties", {}).get("pressure", default_pressure),
+            )
+        )
+    return out
+
+
+def purge_optional_fields(obj):
+    # if planetLimitations is not present, it's an implicit null
+    # => we can delete the field when it's null
+    if isinstance(obj, dict):
+        return {
+            k: purge_optional_fields(v)
+            for k, v in obj.items()
+            if not (k == "planetLimitations" and v is None)
+        }
+    elif isinstance(obj, list):
+        return [purge_optional_fields(x) for x in obj]
+    return obj
+
+def dump(obj):
+    if dataclasses.is_dataclass(obj):
+        out = {}
+        for f in dataclasses.fields(obj):
+            val = getattr(obj, f.name)
+            if val is None:
+                continue
+            key = f.metadata.get("alias", f.name)
+            out[key] = dump(val)
+        return out
+    if isinstance(obj, list):
+        return [dump(e) for e in obj]
+    if isinstance(obj, dict):
+        return {k: dump(v) for k, v in obj.items()}
+    return obj
+
 def construct_profile(data: dict) -> dict:
-    recipes = get_recipes(data["recipe"])
+    default_pressure = (
+        data.get("surface-property", {}).get("pressure", {}).get("default_value", 1000)
+    )
+    planets = get_planets(data.get("planet", {}), default_pressure)
+    planets += get_planets(data.get("surface", {}), default_pressure)
+
+    recipes = get_recipes(data["recipe"], planets)
     items = get_items(data["item"])
     effectmodules = get_machine_effects(data["module"])
 
@@ -141,17 +239,19 @@ def construct_profile(data: dict) -> dict:
     for part in ["furnace", "assembling-machine"]:
         if part not in data.keys():
             continue
-        tmpmachines, tmpeffectmodules = get_machines(data[part])
+        tmpmachines, tmpeffectmodules = get_machines(data[part], planets)
         effectmodules += tmpeffectmodules
         machines += tmpmachines
-    return {
-        "id": "factorio",
-        "name": "Generated Factorio Profile",
-        "items": [ dataclasses.asdict(e) for e in items],
-        "recipes": [ dataclasses.asdict(e) for e in recipes],
-        "machines": [ dataclasses.asdict(e) for e in machines],
-        "machineEffects": [ dataclasses.asdict(e) for e in effectmodules],
-    }
+    return purge_optional_fields(
+        {
+            "id": "factorio",
+            "name": "Generated Factorio Profile",
+            "items": dump(items),
+            "recipes": dump(recipes),
+            "machines": dump(machines),
+            "machineEffects": dump(effectmodules),
+        }
+    )
 
 
 def main():
