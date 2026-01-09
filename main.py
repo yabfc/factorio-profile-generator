@@ -21,7 +21,7 @@ class Recipe:
     category: str
     priority: int
     available: bool
-    planetLimitations: list[str] | None
+    limitations: list[str] | None
 
 
 @dataclasses.dataclass
@@ -46,7 +46,7 @@ class Machine:
     requiredPower: int
     features: list[MachineFeature]
     available: bool
-    planetLimitations: list[str] | None
+    limitations: list[str] | None
 
 
 @dataclasses.dataclass
@@ -100,7 +100,7 @@ def get_machines(
         if "surface_conditions" in machine.keys():
             for condition in machine["surface_conditions"]:
                 if condition.get("property", "") == "pressure":
-                    tmp.planetLimitations = get_allowed_planets(condition, planets)
+                    tmp.limitations = get_allowed_planets(condition, planets)
                     break
         moduleSlots = machine.get("module_slots", 1)
         tmp.features.append(
@@ -160,7 +160,7 @@ def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
         if "surface_conditions" in recipe.keys():
             for condition in recipe["surface_conditions"]:
                 if condition.get("property", "") == "pressure":
-                    tmp.planetLimitations = get_allowed_planets(condition, planets)
+                    tmp.limitations = get_allowed_planets(condition, planets)
                     break
         for ingredient in recipe["ingredients"]:
             tmp.inp.append(
@@ -175,11 +175,11 @@ def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
 def get_allowed_planets(condition: dict, planets: list[Planet]) -> list[str] | None:
     if "min" in condition.keys() and "max" in condition.keys():
         pressure_range = range(condition["min"], condition["max"] + 1)
-        return [p.id for p in planets if p.pressure in pressure_range]
+        return [f"planet:{p.id}" for p in planets if p.pressure in pressure_range]
     elif "min" in condition.keys():
-        return [p.id for p in planets if p.pressure >= condition["min"]]
+        return [f"planet:{p.id}" for p in planets if p.pressure >= condition["min"]]
     elif "max" in condition.keys():
-        return [p.id for p in planets if p.pressure <= condition["max"]]
+        return [f"planet:{p.id}" for p in planets if p.pressure <= condition["max"]]
     return None
 
 
