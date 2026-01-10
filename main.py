@@ -1,9 +1,9 @@
-from xmlrpc.client import boolean
 import json
 import sys
 import os
 import dataclasses
-from typing import Optional
+from typing import Union, Literal
+
 
 @dataclasses.dataclass
 class BaseItemIo:
@@ -69,6 +69,22 @@ class EffectModule:
 class Planet:
     id: str
     pressure: int
+
+
+@dataclasses.dataclass
+class UnlockRecipe:
+    type: Literal["recipe"]
+    ids: list[str]
+
+
+UnlockType = Union[UnlockRecipe]
+
+
+@dataclasses.dataclass
+class Research:
+    id: str
+    unlocks: list[UnlockType]
+    prerequisites: list[str] | None
 
 
 def get_machine_effects(old_effects: dict) -> list[EffectModule]:
@@ -183,6 +199,27 @@ def get_allowed_planets(condition: dict, planets: list[Planet]) -> list[str] | N
     return None
 
 
+def get_research(old_tech: dict) -> list[Research]:
+    out = []
+    for id, tech in old_tech.items():
+        unlocks = []
+        effect_dict = {}
+        for effect in tech.get("effects", []):
+            if effect["type"] not in effect_dict.keys():
+                effect_dict[effect["type"]] = []
+            effect_dict[effect["type"]].append(
+                [v for k, v in effect.items() if k != "type"][0]
+            )
+        for utype, vals in effect_dict.items():
+            if utype == "unlock-recipe":
+                unlocks.append(UnlockRecipe("recipe", vals))
+            # TODO add other types like producitvity effects
+        if len(unlocks) == 0:
+            continue
+        out.append(Research(id, unlocks, tech.get("prerequisites", None)))
+    return out
+
+
 def get_planets(old_planets: dict, default_pressure: int) -> list[Planet]:
     out = []
     for id, planet in old_planets.items():
@@ -208,6 +245,7 @@ def purge_optional_fields(obj):
         return [purge_optional_fields(x) for x in obj]
     return obj
 
+
 def dump(obj):
     if dataclasses.is_dataclass(obj):
         out = {}
@@ -224,6 +262,7 @@ def dump(obj):
         return {k: dump(v) for k, v in obj.items()}
     return obj
 
+
 def construct_profile(data: dict) -> dict:
     default_pressure = (
         data.get("surface-property", {}).get("pressure", {}).get("default_value", 1000)
@@ -234,6 +273,7 @@ def construct_profile(data: dict) -> dict:
     recipes = get_recipes(data["recipe"], planets)
     items = get_items(data["item"])
     effectmodules = get_machine_effects(data["module"])
+    research = get_research(data["technology"])
 
     machines = []
     for part in ["furnace", "assembling-machine"]:
@@ -250,6 +290,7 @@ def construct_profile(data: dict) -> dict:
             "recipes": dump(recipes),
             "machines": dump(machines),
             "machineEffects": dump(effectmodules),
+            "research": dump(research),
         }
     )
 
