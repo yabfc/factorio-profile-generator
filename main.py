@@ -150,10 +150,12 @@ def get_items(old_items: dict) -> list[Item]:
             "parameter" in item.keys() and item["parameter"]
         ):
             continue
-        if item["type"] != "item" and item["type"] != "fluid":
+        if item["type"] not in ["item", "fluid"]:
             continue
         out.append(
-            Item(item["name"], item["type"], item["subgroup"], item["stack_size"])
+            Item(
+                item["name"], item["type"], item["subgroup"], item.get("stack_size", 0)
+            )
         )
     return out
 
@@ -233,13 +235,13 @@ def get_planets(old_planets: dict, default_pressure: int) -> list[Planet]:
 
 
 def purge_optional_fields(obj):
-    # if planetLimitations is not present, it's an implicit null
+    # if limitations is not present, it's an implicit null
     # => we can delete the field when it's null
     if isinstance(obj, dict):
         return {
             k: purge_optional_fields(v)
             for k, v in obj.items()
-            if not (k == "planetLimitations" and v is None)
+            if not (k == "limitations" and v is None)
         }
     elif isinstance(obj, list):
         return [purge_optional_fields(x) for x in obj]
@@ -272,6 +274,7 @@ def construct_profile(data: dict) -> dict:
 
     recipes = get_recipes(data["recipe"], planets)
     items = get_items(data["item"])
+    items += get_items(data["fluid"])
     effectmodules = get_machine_effects(data["module"])
     research = get_research(data["technology"])
 
