@@ -1,268 +1,17 @@
 import json
 import sys
 import os
-import dataclasses
-from typing import Union, Literal
-
-
-@dataclasses.dataclass
-class BaseItemIo:
-    id: str
-    type: str
-    amount: int
-
-
-@dataclasses.dataclass
-class Recipe:
-    id: str
-    inp: list[BaseItemIo] = dataclasses.field(metadata={"alias": "in"})
-    out: list[BaseItemIo]
-    duration: int
-    category: str
-    priority: int
-    available: bool
-    limitations: list[str] | None
-
-
-@dataclasses.dataclass
-class Item:
-    id: str
-    type: str
-    category: str
-    stackSize: int
-
-
-@dataclasses.dataclass
-class MachineFeature:
-    id: str
-    itemSlots: int
-    effectPerSlot: list[str]
-
-
-@dataclasses.dataclass
-class Machine:
-    id: str
-    recipeCategories: list[str]
-    requiredPower: int
-    features: list[MachineFeature]
-    available: bool
-    limitations: list[str] | None
-
-
-@dataclasses.dataclass
-class Modifier:
-    id: str
-    value: float
-    modifiable: bool
-    onlyOutputScales: bool
-
-
-@dataclasses.dataclass
-class EffectModule:
-    id: str
-    modifiers: list[Modifier]
-    perSlot: bool
-    available: bool
-
-
-@dataclasses.dataclass
-class Planet:
-    id: str
-    pressure: int
-
-
-@dataclasses.dataclass
-class UnlockRecipe:
-    type: Literal["recipe"]
-    ids: list[str]
-
-
-UnlockType = Union[UnlockRecipe]
-
-
-@dataclasses.dataclass
-class Research:
-    id: str
-    unlocks: list[UnlockType]
-    prerequisites: list[str] | None
-
-
-def get_machine_effects(old_effects: dict) -> list[EffectModule]:
-    out = []
-    for id, modifier in old_effects.items():
-        if not id.split("-")[-1].isdigit():
-            id += "-1"
-        tmp = EffectModule(id, [], True, True)
-        for eid, effect in modifier["effect"].items():
-            if "productivity" in id and eid == "speed":
-                tmp.modifiers.append(Modifier(eid, effect, False, True))
-            else:
-                tmp.modifiers.append(Modifier(eid, effect, False, False))
-        out.append(tmp)
-    return out
-
-
-def get_machines(
-    old_machines: dict, planets: list[Planet]
-) -> tuple[list[Machine], list[EffectModule]]:
-    out = []
-    effects = []
-    for id, machine in old_machines.items():
-        # power is always in kW - this cuts kW from the string
-        requiredPower = (
-            int("".join(c for c in machine["energy_usage"] if c.isdigit())) * 1000
-        )
-        tmp = Machine(id, machine["crafting_categories"], requiredPower, [], True, None)
-        if "surface_conditions" in machine.keys():
-            for condition in machine["surface_conditions"]:
-                if condition.get("property", "") == "pressure":
-                    tmp.limitations = get_allowed_planets(condition, planets)
-                    break
-        moduleSlots = machine.get("module_slots", 1)
-        tmp.features.append(
-            MachineFeature("modules", moduleSlots, machine["allowed_effects"])
-        )
-        tmp.features.append(
-            MachineFeature("crafting-speed", 0, [f"crafting-speed-{id}"])
-        )
-        out.append(tmp)
-        craft_effect = EffectModule(
-            f"crafting-speed-{id}",
-            [
-                Modifier(
-                    "speed",
-                    machine["crafting_speed"],
-                    False,
-                    True,
-                )
-            ],
-            True,
-            True,
-        )
-        effects.append(craft_effect)
-    return (out, effects)
-
-
-def get_items(old_items: dict) -> list[Item]:
-    out = []
-    for id, item in old_items.items():
-        if ("hidden" in item.keys() and item["hidden"]) or (
-            "parameter" in item.keys() and item["parameter"]
-        ):
-            continue
-        if item["type"] not in ["item", "fluid"]:
-            continue
-        out.append(
-            Item(
-                item["name"], item["type"], item["subgroup"], item.get("stack_size", 0)
-            )
-        )
-    return out
-
-
-def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
-    out = []
-    for id, recipe in old_recipes.items():
-        if "hidden" in recipe.keys() and recipe["hidden"]:
-            continue
-
-        category = recipe.get("category", "default")
-        if category == "parameters":
-            continue
-        duration = recipe.get("energy_required", 1)
-        if "-barrel" in id:
-            prio = 30
-        else:
-            prio = 10
-        tmp = Recipe(id, [], [], duration, category, prio, True, None)
-        if "surface_conditions" in recipe.keys():
-            for condition in recipe["surface_conditions"]:
-                if condition.get("property", "") == "pressure":
-                    tmp.limitations = get_allowed_planets(condition, planets)
-                    break
-        for ingredient in recipe["ingredients"]:
-            tmp.inp.append(
-                BaseItemIo(ingredient["name"], ingredient["type"], ingredient["amount"])
-            )
-        for result in recipe["results"]:
-            tmp.out.append(BaseItemIo(result["name"], result["type"], result["amount"]))
-        out.append(tmp)
-    return out
-
-
-def get_allowed_planets(condition: dict, planets: list[Planet]) -> list[str] | None:
-    if "min" in condition.keys() and "max" in condition.keys():
-        pressure_range = range(condition["min"], condition["max"] + 1)
-        return [f"planet:{p.id}" for p in planets if p.pressure in pressure_range]
-    elif "min" in condition.keys():
-        return [f"planet:{p.id}" for p in planets if p.pressure >= condition["min"]]
-    elif "max" in condition.keys():
-        return [f"planet:{p.id}" for p in planets if p.pressure <= condition["max"]]
-    return None
-
-
-def get_research(old_tech: dict) -> list[Research]:
-    out = []
-    for id, tech in old_tech.items():
-        unlocks = []
-        effect_dict = {}
-        for effect in tech.get("effects", []):
-            if effect["type"] not in effect_dict.keys():
-                effect_dict[effect["type"]] = []
-            effect_dict[effect["type"]].append(
-                [v for k, v in effect.items() if k != "type"][0]
-            )
-        for utype, vals in effect_dict.items():
-            if utype == "unlock-recipe":
-                unlocks.append(UnlockRecipe("recipe", vals))
-            # TODO add other types like producitvity effects
-        if len(unlocks) == 0:
-            continue
-        out.append(Research(id, unlocks, tech.get("prerequisites", None)))
-    return out
-
-
-def get_planets(old_planets: dict, default_pressure: int) -> list[Planet]:
-    out = []
-    for id, planet in old_planets.items():
-        out.append(
-            Planet(
-                id,
-                planet.get("surface_properties", {}).get("pressure", default_pressure),
-            )
-        )
-    return out
-
-
-def purge_optional_fields(obj):
-    # if limitations is not present, it's an implicit null
-    # => we can delete the field when it's null
-    if isinstance(obj, dict):
-        return {
-            k: purge_optional_fields(v)
-            for k, v in obj.items()
-            if not (k == "limitations" and v is None)
-        }
-    elif isinstance(obj, list):
-        return [purge_optional_fields(x) for x in obj]
-    return obj
-
-
-def dump(obj):
-    if dataclasses.is_dataclass(obj):
-        out = {}
-        for f in dataclasses.fields(obj):
-            val = getattr(obj, f.name)
-            if val is None:
-                continue
-            key = f.metadata.get("alias", f.name)
-            out[key] = dump(val)
-        return out
-    if isinstance(obj, list):
-        return [dump(e) for e in obj]
-    if isinstance(obj, dict):
-        return {k: dump(v) for k, v in obj.items()}
-    return obj
+from profiles.items import get_fuels, get_heat_capacity, get_items
+from profiles.recipes import (
+    get_recipes,
+    get_recipes_from_other,
+    get_recipes_from_ressources,
+    get_recipes_from_tiles,
+)
+from profiles.machines import get_machine_effects, get_machines
+from profiles.research import get_research
+from profiles.validate import validate_recipes
+from profiles.utils import purge_optional_fields, dump, get_planets
 
 
 def construct_profile(data: dict) -> dict:
@@ -272,19 +21,34 @@ def construct_profile(data: dict) -> dict:
     planets = get_planets(data.get("planet", {}), default_pressure)
     planets += get_planets(data.get("surface", {}), default_pressure)
 
-    recipes = get_recipes(data["recipe"], planets)
     items = get_items(data["item"])
     items += get_items(data["fluid"])
+
+    fuels = get_fuels(data["item"])
+    fuels += get_fuels(data["fluid"])
+
+    heat_capacity_fluids = get_heat_capacity(data["fluid"])
+
+    recipes = get_recipes(data["recipe"], planets)
+    recipes += get_recipes_from_ressources(data["resource"])
+    recipes += get_recipes_from_ressources(data.get("plant", {}))
+    recipes += get_recipes_from_tiles(data["tile"], planets)
+    for b in ["boiler", "reactor"]:
+        recipes += get_recipes_from_other(data[b], fuels, heat_capacity_fluids, planets)
+
     effectmodules = get_machine_effects(data["module"])
     research = get_research(data["technology"])
 
     machines = []
-    for part in ["furnace", "assembling-machine"]:
-        if part not in data.keys():
+    for part in ["furnace", "assembling-machine", "mining-drill"]:
+        if part not in data:
             continue
         tmpmachines, tmpeffectmodules = get_machines(data[part], planets)
         effectmodules += tmpeffectmodules
         machines += tmpmachines
+
+    validate_recipes(recipes)
+
     return purge_optional_fields(
         {
             "id": "factorio",
