@@ -12,7 +12,7 @@ from profiles.machines import get_machine_effects, get_machines
 from profiles.research import get_research
 from profiles.validate import validate_recipes
 from profiles.utils import purge_optional_fields, dump, get_planets
-
+import argparse
 
 def construct_profile(data: dict) -> dict:
     default_pressure = (
@@ -63,17 +63,24 @@ def construct_profile(data: dict) -> dict:
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Please specify a dump file")
+    parser = argparse.ArgumentParser(description="YABFC Profile Generator for Factorio dumps")
+    parser.add_argument("-i", "--input", required=True)
+    parser.add_argument("-o", "--output", default="out.json")
+    
+    args = parser.parse_args()
+
+    if not os.path.exists(args.input):
+        print(f"Could not open file at: '{args.input}'")
         sys.exit(1)
-    fp = sys.argv[1]
-    if not os.path.exists(fp):
-        print(f"Could not open file at: '{fp}'")
+    with open(args.input, "r") as f:
+        dump = json.load(f)
+    if not os.path.exists(args.input):
+        print(f"Could not open file at: '{args.input}'")
         sys.exit(1)
-    with open(fp, "r") as f:
+    with open(args.input, "r") as f:
         dump = json.load(f)
     profile = construct_profile(dump)
-    with open("out.json", "w") as f:
+    with open(args.output, "w") as f:
         json.dump(profile, f, indent=4)
 
 
