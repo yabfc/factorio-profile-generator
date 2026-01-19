@@ -133,6 +133,7 @@ def get_recipes_from_other(
 
             if fuel.burnt_result:
                 out_items.append(BaseItemIo(fuel.burnt_result, "item", factor))
+                fuel.id = fuel.burnt_result
             out.append(
                 Recipe(
                     recipe_id + fuel.id,
