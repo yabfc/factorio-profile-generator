@@ -14,6 +14,7 @@ from profiles.validate import validate_recipes
 from profiles.utils import purge_optional_fields, dump, get_planets
 import argparse
 
+
 def construct_profile(data: dict) -> dict:
     default_pressure = (
         data.get("surface-property", {}).get("pressure", {}).get("default_value", 1000)
@@ -30,9 +31,10 @@ def construct_profile(data: dict) -> dict:
     heat_capacity_fluids = get_heat_capacity(data["fluid"])
 
     recipes = get_recipes(data["recipe"], planets)
-    recipes += get_recipes_from_ressources(data["resource"])
-    recipes += get_recipes_from_ressources(data.get("plant", {}))
     recipes += get_recipes_from_tiles(data["tile"], planets)
+
+    for r in ["resource", "plant", "tree", "fish", "asteroid-chunk"]:
+        recipes += get_recipes_from_ressources(data.get(r, {}))
     for b in ["boiler", "reactor"]:
         recipes += get_recipes_from_other(data[b], fuels, heat_capacity_fluids, planets)
 
@@ -40,10 +42,8 @@ def construct_profile(data: dict) -> dict:
     research = get_research(data["technology"])
 
     machines = []
-    for part in ["furnace", "assembling-machine", "mining-drill"]:
-        if part not in data:
-            continue
-        tmpmachines, tmpeffectmodules = get_machines(data[part], planets)
+    for part in ["furnace", "assembling-machine", "mining-drill", "asteroid-collector"]:
+        tmpmachines, tmpeffectmodules = get_machines(data.get(part, {}), planets)
         effectmodules += tmpeffectmodules
         machines += tmpmachines
 
@@ -63,10 +63,12 @@ def construct_profile(data: dict) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="YABFC Profile Generator for Factorio dumps")
+    parser = argparse.ArgumentParser(
+        description="YABFC Profile Generator for Factorio dumps"
+    )
     parser.add_argument("-i", "--input", required=True)
     parser.add_argument("-o", "--output", default="out.json")
-    
+
     args = parser.parse_args()
 
     if not os.path.exists(args.input):

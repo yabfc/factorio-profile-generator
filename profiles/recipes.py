@@ -6,11 +6,20 @@ import copy
 
 def get_recipes_from_ressources(ressources: dict) -> list[Recipe]:
     out = []
+    seen = []
     for id, ressource in ressources.items():
-        if "minable" not in ressource:
+        if "minable" not in ressource or ressource.get("type", "") in seen:
             continue
         minable = ressource["minable"]
         category = ressource.get("category", "basic-solid")
+        if ressource.get("type", "") in ["tree", "fish"]:
+            seen.append(ressource["type"])
+            id = ressource["type"]
+            category = "manual-harvest"
+        if ressource.get("type", "") == "asteroid-chunk":
+            category = "asteroid-collector"
+        if ressource.get("type", "") == "plant":
+            category = "manual-harvest"
 
         tmp = Recipe(id, [], [], minable["mining_time"], category, 10, True, None)
         if "required_fluid" in minable:

@@ -25,9 +25,22 @@ def get_machines(
     all_effects = ["pollution", "speed", "productivity", "consumption", "quality"]
     for id, machine in old_machines.items():
         # power is always in kW - this cuts kW from the string
-        requiredPower = normalize_energy(machine["energy_usage"])
+        if machine.get("energy_usage", None):
+            requiredPower = normalize_energy(machine["energy_usage"])
+        elif machine.get("arm_energy_usage", None):
+            requiredPower = normalize_energy(machine["arm_energy_usage"])
+        else:
+            print(
+                f"{id} has neither `energy_usage` nor `arm_energy_usage`. Defaulting to 1"
+            )
+            requiredPower = 1
+        if machine.get("passive_energy_usage", None):
+            requiredPower += normalize_energy(machine["passive_energy_usage"])
+
         categories = machine.get("crafting_categories", [])
         categories += machine.get("resource_categories", [])
+        if len(categories) == 0:
+            categories.append(id)
         tmp = Machine(id, categories, requiredPower, [], True, None)
         if "surface_conditions" in machine:
             tmp.limitations = get_allowed_planets(
