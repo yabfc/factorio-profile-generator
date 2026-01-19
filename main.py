@@ -12,14 +12,21 @@ from profiles.machines import get_machine_effects, get_machines
 from profiles.research import get_research
 from profiles.validate import validate_recipes
 from profiles.utils import purge_optional_fields, dump, get_planets
+from profiles.model import FactorioDataRaw
+from pathlib import Path
+import argparse
+import sys
 
 
-def construct_profile(data: dict) -> dict:
-    default_pressure = (
-        data.get("surface-property", {}).get("pressure", {}).get("default_value", 1000)
-    )
-    planets = get_planets(data.get("planet", {}), default_pressure)
-    planets += get_planets(data.get("surface", {}), default_pressure)
+def construct_profile(data: FactorioDataRaw) -> dict:
+    default_pressure = 1000
+    if data.surface_property:
+        pressure = data.surface_property.get("pressure", None)
+        if pressure:
+            default_pressure = pressure.default_value
+
+    planets = get_planets(data.planet, default_pressure)
+    planets += get_planets(data.surface, default_pressure)
 
     items = get_items(data["item"])
     items += get_items(data["fluid"])
@@ -63,16 +70,24 @@ def construct_profile(data: dict) -> dict:
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Please specify a dump file")
+    parser = argparse.ArgumentParser(description="YABFC Profile Generator for Factorio dumps")
+    parser.add_argument("-i", "--input", required=True)
+    parser.add_argument("-o", "--output", default="out.json")
+    parser.add_argument("-k", "--no-validation", action="store_true")
+    
+    args = parser.parse_args()
+
+    if not os.path.exists(args.input):
+        print(f"Could not open file at: '{args.input}'")
         sys.exit(1)
-    fp = sys.argv[1]
-    if not os.path.exists(fp):
-        print(f"Could not open file at: '{fp}'")
-        sys.exit(1)
-    with open(fp, "r") as f:
+    with open(args.input, "r") as f:
         dump = json.load(f)
-    profile = construct_profile(dump)
+    if not args.no_validation:
+        FactorioDataRaw.model_validate(dump, strict=False)
+        print(f"Factorio dump is valid")
+
+    raw_dump = FactorioDataRaw.model_construct(**dump)
+    profile = construct_profile(raw_dump)
     with open("out.json", "w") as f:
         json.dump(profile, f, indent=4)
 

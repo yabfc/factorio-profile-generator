@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+from profiles.model import PlanetPrototype, SurfacePrototype, Double
 from profiles import POWER_FACTORS, Planet
 import dataclasses
 import re
@@ -10,13 +12,15 @@ def normalize_energy(power_str: str) -> int:
     return int(float(p) * POWER_FACTORS[unit])
 
 
-def get_planets(old_planets: dict, default_pressure: int) -> list[Planet]:
+def get_planets(old_planets: Mapping[str,  PlanetPrototype | SurfacePrototype], default_pressure: Double) -> list[Planet]:
     out = []
     for id, planet in old_planets.items():
+        if isinstance(planet, PlanetPrototype) and planet.surface_properties:
+            pressure = planet.surface_properties.get("pressure", default_pressure)
         out.append(
             Planet(
                 id,
-                planet.get("surface_properties", {}).get("pressure", default_pressure),
+                pressure if pressure else default_pressure,
             )
         )
     return out
