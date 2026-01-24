@@ -156,12 +156,14 @@ def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
         if "hidden" in recipe and recipe["hidden"]:
             continue
 
-        category = recipe.get("category", "default")
+        category = recipe.get("category", "crafting")
         if category == "parameters":
             continue
         duration = recipe.get("energy_required", 1)
         if "-barrel" in id:
             prio = 30
+        elif category == "recycling-or-hand-crafting":
+            prio = 90
         else:
             prio = 10
         tmp = Recipe(id, [], [], duration, category, prio, True, None)
