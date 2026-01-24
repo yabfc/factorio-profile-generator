@@ -9,29 +9,45 @@ def get_machine_effects(old_effects: dict) -> list[EffectModule]:
             id += "-1"
         tmp = EffectModule(id, [], True, True)
         for eid, effect in modifier["effect"].items():
-            if "productivity" in id and eid == "speed":
-                tmp.modifiers.append(Modifier(eid, effect, False, True))
+            # adding 1 so we get instead of e.g 0.5 for +50%, simply 1.5 so we can multiply by value later
+            if "productivity" in eid:
+                tmp.modifiers.append(Modifier(eid, 1+ effect, False, True))
             else:
-                tmp.modifiers.append(Modifier(eid, effect, False, False))
+                tmp.modifiers.append(Modifier(eid, 1 + effect, False, False))
         out.append(tmp)
     return out
 
 
+def get_allowed_effect_modules(allowed_effects: list[str], effect_modules: list[EffectModule]) -> list[str]:
+    out = []
+    for module in effect_modules:
+        if "crafting-speed" in module.id:
+            continue
+        used_effects = set([m.id for m in module.modifiers])
+        if used_effects.issubset(set(allowed_effects)):
+            out.append(module.id)
+
+    return out
+
+
 def get_machines(
-    old_machines: dict, planets: list[Planet]
+    old_machines: dict, planets: list[Planet], effectModules: list[EffectModule]
 ) -> tuple[list[Machine], list[EffectModule]]:
     out = []
     effects = []
     all_effects = ["pollution", "speed", "productivity", "consumption", "quality"]
     for id, machine in old_machines.items():
-        # power is always in kW - this cuts kW from the string
         if machine.get("energy_usage", None):
             requiredPower = normalize_energy(machine["energy_usage"])
         elif machine.get("arm_energy_usage", None):
             requiredPower = normalize_energy(machine["arm_energy_usage"])
+        elif machine.get("consumption", None):
+            requiredPower = normalize_energy(machine["consumption"])
+        elif machine.get("energy_consumption", None): 
+            requiredPower = normalize_energy(machine["energy_consumption"])
         else:
             print(
-                f"{id} has neither `energy_usage` nor `arm_energy_usage`. Defaulting to 1"
+                f"{id} did not have any energy consumtion field. Defaulting to 1"
             )
             requiredPower = 1
         if machine.get("passive_energy_usage", None):
@@ -47,12 +63,13 @@ def get_machines(
                 machine["surface_conditions"], planets
             )
         moduleSlots = machine.get("module_slots", 0)
-
-        tmp.features.append(
-            MachineFeature(
-                "modules", moduleSlots, machine.get("allowed_effects", all_effects)
+        if moduleSlots > 0:
+            allowed_effects = machine.get("allowed_effects", all_effects)
+            tmp.features.append(
+                MachineFeature(
+                    "modules", moduleSlots, get_allowed_effect_modules(allowed_effects, effectModules)
+                )
             )
-        )
         if "crafting_categories" in machine:
             tmp.features.append(
                 MachineFeature("crafting-speed", 0, [f"crafting-speed-{id}"])
