@@ -11,14 +11,16 @@ def get_machine_effects(old_effects: dict) -> list[EffectModule]:
         for eid, effect in modifier["effect"].items():
             # adding 1 so we get instead of e.g 0.5 for +50%, simply 1.5 so we can multiply by value later
             if "productivity" in eid:
-                tmp.modifiers.append(Modifier(eid, 1+ effect, False, True))
+                tmp.modifiers.append(Modifier(eid, 1 + effect, False, True))
             else:
                 tmp.modifiers.append(Modifier(eid, 1 + effect, False, False))
         out.append(tmp)
     return out
 
 
-def get_allowed_effect_modules(allowed_effects: list[str], effect_modules: list[EffectModule]) -> list[str]:
+def get_allowed_effect_modules(
+    allowed_effects: list[str], effect_modules: list[EffectModule]
+) -> list[str]:
     out = []
     for module in effect_modules:
         if "crafting-speed" in module.id:
@@ -43,12 +45,10 @@ def get_machines(
             requiredPower = normalize_energy(machine["arm_energy_usage"])
         elif machine.get("consumption", None):
             requiredPower = normalize_energy(machine["consumption"])
-        elif machine.get("energy_consumption", None): 
+        elif machine.get("energy_consumption", None):
             requiredPower = normalize_energy(machine["energy_consumption"])
         else:
-            print(
-                f"{id} did not have any energy consumtion field. Defaulting to 1"
-            )
+            print(f"{id} did not have any energy consumtion field. Defaulting to 1")
             requiredPower = 1
         if machine.get("passive_energy_usage", None):
             requiredPower += normalize_energy(machine["passive_energy_usage"])
@@ -67,12 +67,15 @@ def get_machines(
             allowed_effects = machine.get("allowed_effects", all_effects)
             tmp.features.append(
                 MachineFeature(
-                    "modules", moduleSlots, get_allowed_effect_modules(allowed_effects, effectModules)
+                    "modules",
+                    moduleSlots,
+                    get_allowed_effect_modules(allowed_effects, effectModules),
+                    None,
                 )
             )
         if "crafting_categories" in machine:
             tmp.features.append(
-                MachineFeature("crafting-speed", 0, [f"crafting-speed-{id}"])
+                MachineFeature("crafting-speed", 0, [f"crafting-speed-{id}"], True)
             )
             craft_effect = EffectModule(
                 f"crafting-speed-{id}",

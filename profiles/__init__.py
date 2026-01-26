@@ -34,6 +34,7 @@ class MachineFeature:
     id: str
     itemSlots: int
     effectPerSlot: list[str]
+    hidden: bool | None
 
 
 @dataclasses.dataclass

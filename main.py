@@ -42,8 +42,19 @@ def construct_profile(data: dict) -> dict:
     research = get_research(data["technology"])
 
     machines = []
-    for part in ["furnace", "assembling-machine", "mining-drill", "asteroid-collector", "rocket-silo", "offshore-pump", "boiler", "reactor"]:
-        tmpmachines, tmpeffectmodules = get_machines(data.get(part, {}), planets, effectmodules)
+    for part in [
+        "furnace",
+        "assembling-machine",
+        "mining-drill",
+        "asteroid-collector",
+        "rocket-silo",
+        "offshore-pump",
+        "boiler",
+        "reactor",
+    ]:
+        tmpmachines, tmpeffectmodules = get_machines(
+            data.get(part, {}), planets, effectmodules
+        )
         effectmodules += tmpeffectmodules
         machines += tmpmachines
 
