@@ -18,5 +18,5 @@ def get_research(old_tech: dict) -> list[Research]:
             # TODO add other types like producitvity effects
         if len(unlocks) == 0:
             continue
-        out.append(Research(id, unlocks, tech.get("prerequisites", None)))
+        out.append(Research(id, unlocks, tech.get("prerequisites", None), False))
     return out

@@ -1,4 +1,4 @@
-from profiles import BaseItemIo, Recipe, Planet, FuelItem, HeatCapacityFluids
+from profiles import BaseItemIo, Recipe, Planet, FuelItem, HeatCapacityFluids, Research
 from profiles.utils import get_allowed_planets, normalize_energy
 import fractions
 import copy
@@ -21,7 +21,7 @@ def get_recipes_from_ressources(ressources: dict) -> list[Recipe]:
         if ressource.get("type", "") == "plant":
             category = "manual-harvest"
 
-        tmp = Recipe(id, [], [], minable["mining_time"], category, 10, True, None)
+        tmp = Recipe(id, [], [], minable["mining_time"], category, 10, False, None)
         if "required_fluid" in minable:
             tmp.inp.append(
                 BaseItemIo(minable["required_fluid"], "fluid", minable["fluid_amount"])
@@ -61,7 +61,7 @@ def get_recipes_from_tiles(tiles: dict, planets: list[Planet]) -> list[Recipe]:
                 1,
                 "offshore-pump",
                 10,
-                True,
+                False,
                 [f"planet:{planet}" for planet in planets],
             )
         )
@@ -142,7 +142,7 @@ def get_recipes_from_other(
                     duration,
                     id,
                     10,
-                    True,
+                    False,
                     limitations,
                 )
             )
@@ -166,7 +166,7 @@ def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
             prio = 90
         else:
             prio = 10
-        tmp = Recipe(id, [], [], duration, category, prio, True, None)
+        tmp = Recipe(id, [], [], duration, category, prio, False, None)
         if "surface_conditions" in recipe:
             tmp.limitations = get_allowed_planets(recipe["surface_conditions"], planets)
         for ingredient in recipe["ingredients"]:
@@ -177,3 +177,14 @@ def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
             tmp.out.append(BaseItemIo(result["name"], result["type"], result["amount"]))
         out.append(tmp)
     return out
+
+
+def set_recipe_availability(
+    recipes: list[Recipe], research: list[Research]
+) -> list[Recipe]:
+    locked = [u for r in research for u in r.unlocks if u.type == "recipe"]
+    locked = [item for unlock_recipe in locked for item in unlock_recipe.ids]
+    for recipe in recipes:
+        if recipe.id not in locked:
+            recipe.available = True
+    return recipes

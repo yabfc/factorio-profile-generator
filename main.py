@@ -7,8 +7,14 @@ from profiles.recipes import (
     get_recipes_from_other,
     get_recipes_from_ressources,
     get_recipes_from_tiles,
+    set_recipe_availability,
 )
-from profiles.machines import get_machine_effects, get_machines
+from profiles.machines import (
+    get_machine_effects,
+    get_machines,
+    set_machine_availability,
+    set_effect_availability,
+)
 from profiles.research import get_research
 from profiles.validate import validate_recipes
 from profiles.utils import purge_optional_fields, dump, get_planets
@@ -57,6 +63,10 @@ def construct_profile(data: dict) -> dict:
         )
         effectmodules += tmpeffectmodules
         machines += tmpmachines
+
+    machines = set_machine_availability(machines, research)
+    recipes = set_recipe_availability(recipes, research)
+    effectmodules = set_effect_availability(effectmodules, research)
 
     validate_recipes(recipes)
 

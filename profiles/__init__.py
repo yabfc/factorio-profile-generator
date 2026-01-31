@@ -83,6 +83,7 @@ class Research:
     id: str
     unlocks: list[UnlockType]
     prerequisites: list[str] | None
+    unlocked: bool
 
 
 @dataclasses.dataclass

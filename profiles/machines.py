@@ -1,4 +1,4 @@
-from profiles import EffectModule, Planet, Machine, MachineFeature, Modifier
+from profiles import EffectModule, Planet, Machine, MachineFeature, Modifier, Research
 from profiles.utils import get_allowed_planets, normalize_energy
 
 
@@ -7,7 +7,7 @@ def get_machine_effects(old_effects: dict) -> list[EffectModule]:
     for id, modifier in old_effects.items():
         if not id.split("-")[-1].isdigit():
             id += "-1"
-        tmp = EffectModule(id, [], True, True)
+        tmp = EffectModule(id, [], True, False)
         for eid, effect in modifier["effect"].items():
             # adding 1 so we get instead of e.g 0.5 for +50%, simply 1.5 so we can multiply by value later
             if "productivity" in eid:
@@ -57,7 +57,7 @@ def get_machines(
         categories += machine.get("resource_categories", [])
         if len(categories) == 0:
             categories.append(id)
-        tmp = Machine(id, categories, requiredPower, [], True, None)
+        tmp = Machine(id, categories, requiredPower, [], False, None)
         if "surface_conditions" in machine:
             tmp.limitations = get_allowed_planets(
                 machine["surface_conditions"], planets
@@ -88,9 +88,31 @@ def get_machines(
                     )
                 ],
                 True,
-                True,
+                False,
             )
             effects.append(craft_effect)
         out.append(tmp)
 
     return (out, effects)
+
+
+def set_machine_availability(
+    machines: list[Machine], research: list[Research]
+) -> list[Machine]:
+    locked = [u for r in research for u in r.unlocks if u.type == "recipe"]
+    locked = [item for unlock_recipe in locked for item in unlock_recipe.ids]
+    for machine in machines:
+        if machine.id not in locked:
+            machine.available = True
+    return machines
+
+
+def set_effect_availability(
+    effects: list[EffectModule], research: list[Research]
+) -> list[EffectModule]:
+    locked = [u for r in research for u in r.unlocks if u.type == "recipe"]
+    locked = [item for unlock_recipe in locked for item in unlock_recipe.ids]
+    for effect in effects:
+        if effect.id not in locked:
+            effect.available = True
+    return effects
