@@ -24,7 +24,7 @@ def get_recipes_from_ressources(ressources: dict) -> list[Recipe]:
         tmp = Recipe(id, [], [], minable["mining_time"], category, 10, True, None)
         if "required_fluid" in minable:
             tmp.inp.append(
-                BaseItemIo(minable["required_fluid"], "fluid", minable["fluid_amount"])
+                BaseItemIo(minable["required_fluid"], minable["fluid_amount"])
             )
 
         if "results" in minable:
@@ -33,9 +33,9 @@ def get_recipes_from_ressources(ressources: dict) -> list[Recipe]:
                 amount = (
                     result["amount_min"] if "amount_min" in result else result["amount"]
                 )
-                tmp.out.append(BaseItemIo(result["name"], result["type"], amount))
+                tmp.out.append(BaseItemIo(result["name"], amount))
         elif "result" in minable:
-            tmp.out.append(BaseItemIo(minable["result"], "item", 1))
+            tmp.out.append(BaseItemIo(minable["result"], 1))
         out.append(tmp)
     return out
 
@@ -57,7 +57,7 @@ def get_recipes_from_tiles(tiles: dict, planets: list[Planet]) -> list[Recipe]:
             Recipe(
                 fluid,
                 [],
-                [BaseItemIo(fluid, "fluid", 1200)],
+                [BaseItemIo(fluid, 1200)],
                 1,
                 "offshore-pump",
                 10,
@@ -89,7 +89,7 @@ def get_recipes_from_other(
 
         fluid_out = None
         if builing.get("output_fluid_box", {}).get("production_type") == "output":
-            fluid_out = BaseItemIo(builing["output_fluid_box"]["filter"], "fluid", 0)
+            fluid_out = BaseItemIo(builing["output_fluid_box"]["filter"], 0)
             recipe_id = builing["output_fluid_box"]["filter"] + "-"
             if fluid_out.id in fluids and temperature_target:
                 fluid = fluids[fluid_out.id]
@@ -99,7 +99,7 @@ def get_recipes_from_other(
                 )
         fluid_in = None
         if builing.get("fluid_box", {}).get("production_type") == "input":
-            fluid_in = BaseItemIo(builing["fluid_box"]["filter"], "fluid", 60)
+            fluid_in = BaseItemIo(builing["fluid_box"]["filter"], 60)
             if fluid_in.id in fluids and temperature_target:
                 fluid = fluids[fluid_in.id]
                 temperature_delta = temperature_target - fluid.default_temperature
@@ -132,12 +132,12 @@ def get_recipes_from_other(
                 out_items.append(tmp)
 
             if fuel.burnt_result:
-                out_items.append(BaseItemIo(fuel.burnt_result, "item", factor))
+                out_items.append(BaseItemIo(fuel.burnt_result, factor))
                 fuel.id = fuel.burnt_result
             out.append(
                 Recipe(
                     recipe_id + fuel.id,
-                    in_items + [BaseItemIo(fuel.id, fuel.type, factor)],
+                    in_items + [BaseItemIo(fuel.id, factor)],
                     out_items,
                     duration,
                     id,
@@ -170,10 +170,8 @@ def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
         if "surface_conditions" in recipe:
             tmp.limitations = get_allowed_planets(recipe["surface_conditions"], planets)
         for ingredient in recipe["ingredients"]:
-            tmp.inp.append(
-                BaseItemIo(ingredient["name"], ingredient["type"], ingredient["amount"])
-            )
+            tmp.inp.append(BaseItemIo(ingredient["name"], ingredient["amount"]))
         for result in recipe["results"]:
-            tmp.out.append(BaseItemIo(result["name"], result["type"], result["amount"]))
+            tmp.out.append(BaseItemIo(result["name"], result["amount"]))
         out.append(tmp)
     return out

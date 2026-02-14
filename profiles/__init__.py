@@ -5,7 +5,6 @@ import dataclasses
 @dataclasses.dataclass
 class BaseItemIo:
     id: str
-    type: str
     amount: int
 
 
