@@ -2,15 +2,31 @@ from profiles import Item, FuelItem, HeatCapacityFluids
 from profiles.utils import normalize_energy
 
 
-def get_items(old_items: dict) -> list[Item]:
+def get_items(old_items: dict, allowed_hidden: list[str]) -> list[Item]:
     out = []
     for id, item in old_items.items():
-        if ("hidden" in item and item["hidden"]) or (
+        if ("hidden" in item and item["hidden"] and id not in allowed_hidden) or (
             "parameter" in item and item["parameter"]
         ):
             continue
-        if item["type"] not in ["item", "fluid"]:
+        # tool => science pack
+        if item["type"] not in [
+            "item",
+            "fluid",
+            "tool",
+            "module",
+            "ammo",
+            "gun",
+            "item-with-entity-data",
+            "capsule",
+            "rail-planner",
+            "armor",
+            "repair-tool",
+            "space-platform-starter-pack",
+        ]:
             continue
+        if item["type"] != "fluid":
+            item["type"] = "item"
         out.append(
             Item(
                 item["name"], item["type"], item["subgroup"], item.get("stack_size", 0)

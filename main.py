@@ -10,7 +10,7 @@ from profiles.recipes import (
 )
 from profiles.machines import get_machine_effects, get_machines
 from profiles.research import get_research
-from profiles.validate import validate_recipes
+from profiles.validate import validate_recipes, validate_items, validate_machines
 from profiles.utils import purge_optional_fields, dump, get_planets
 import argparse
 
@@ -22,8 +22,21 @@ def construct_profile(data: dict) -> dict:
     planets = get_planets(data.get("planet", {}), default_pressure)
     planets += get_planets(data.get("surface", {}), default_pressure)
 
-    items = get_items(data["item"])
-    items += get_items(data["fluid"])
+    items = get_items(data["item"], ["rocket-part"])
+    items += get_items(data["fluid"], [])
+    for cat in [
+        "tool",
+        "module",
+        "ammo",
+        "gun",
+        "item-with-entity-data",
+        "capsule",
+        "rail-planner",
+        "armor",
+        "repair-tool",
+        "space-platform-starter-pack",
+    ]:
+        items += get_items(data.get(cat, {}), [])
 
     fuels = get_fuels(data["item"])
     fuels += get_fuels(data["fluid"])
@@ -59,6 +72,8 @@ def construct_profile(data: dict) -> dict:
         machines += tmpmachines
 
     validate_recipes(recipes)
+    validate_items(items, recipes)
+    validate_machines(machines, recipes)
 
     return purge_optional_fields(
         {
