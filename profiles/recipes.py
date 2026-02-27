@@ -4,21 +4,21 @@ import fractions
 import copy
 
 
-def get_recipes_from_ressources(ressources: dict) -> list[Recipe]:
+def get_recipes_from_resources(resources: dict) -> list[Recipe]:
     out = []
     seen = []
-    for id, ressource in ressources.items():
-        if "minable" not in ressource or ressource.get("type", "") in seen:
+    for id, resource in resources.items():
+        if "minable" not in resource or resource.get("type", "") in seen:
             continue
-        minable = ressource["minable"]
-        category = ressource.get("category", "basic-solid")
-        if ressource.get("type", "") in ["tree", "fish"]:
-            seen.append(ressource["type"])
-            id = ressource["type"]
+        minable = resource["minable"]
+        category = resource.get("category", "basic-solid")
+        if resource.get("type", "") in ["tree", "fish"]:
+            seen.append(resource["type"])
+            id = resource["type"]
             category = "manual-harvest"
-        if ressource.get("type", "") == "asteroid-chunk":
+        if resource.get("type", "") == "asteroid-chunk":
             category = "asteroid-collector"
-        if ressource.get("type", "") == "plant":
+        if resource.get("type", "") == "plant":
             category = "manual-harvest"
 
         tmp = Recipe(id, [], [], minable["mining_time"], category, 10, True, None)
@@ -75,22 +75,22 @@ def get_recipes_from_other(
     planets: list[Planet],
 ) -> list[Recipe]:
     out = []
-    for id, builing in buildings.items():
+    for id, building in buildings.items():
         if id in ["heating-tower"]:
             continue
         recipe_id = ""
-        temperature_target = builing.get("target_temperature", None)
-        if "energy_consumption" in builing:
-            consumption_str = builing["energy_consumption"]
-        elif "consumption" in builing:
-            consumption_str = builing["consumption"]
+        temperature_target = building.get("target_temperature", None)
+        if "energy_consumption" in building:
+            consumption_str = building["energy_consumption"]
+        elif "consumption" in building:
+            consumption_str = building["consumption"]
         consumption = normalize_energy(consumption_str)
-        fuel_categories = builing.get("energy_source", {}).get("fuel_categories", [])
+        fuel_categories = building.get("energy_source", {}).get("fuel_categories", [])
 
         fluid_out = None
-        if builing.get("output_fluid_box", {}).get("production_type") == "output":
-            fluid_out = BaseItemIo(builing["output_fluid_box"]["filter"], 0)
-            recipe_id = builing["output_fluid_box"]["filter"] + "-"
+        if building.get("output_fluid_box", {}).get("production_type") == "output":
+            fluid_out = BaseItemIo(building["output_fluid_box"]["filter"], 0)
+            recipe_id = building["output_fluid_box"]["filter"] + "-"
             if fluid_out.id in fluids and temperature_target:
                 fluid = fluids[fluid_out.id]
                 temperature_delta = temperature_target - fluid.default_temperature
@@ -98,8 +98,8 @@ def get_recipes_from_other(
                     temperature_delta * fluid.heat_capacity
                 )
         fluid_in = None
-        if builing.get("fluid_box", {}).get("production_type") == "input":
-            fluid_in = BaseItemIo(builing["fluid_box"]["filter"], 60)
+        if building.get("fluid_box", {}).get("production_type") == "input":
+            fluid_in = BaseItemIo(building["fluid_box"]["filter"], 60)
             if fluid_in.id in fluids and temperature_target:
                 fluid = fluids[fluid_in.id]
                 temperature_delta = temperature_target - fluid.default_temperature
@@ -108,8 +108,8 @@ def get_recipes_from_other(
                 )
 
         limitations = None
-        if "surface_condition" in builing:
-            limitations = get_allowed_planets(builing["surface_conditions"], planets)
+        if "surface_condition" in building:
+            limitations = get_allowed_planets(building["surface_conditions"], planets)
         for fuel in fuels:
             out_items = []
             in_items = []

@@ -5,7 +5,7 @@ from profiles.items import get_fuels, get_heat_capacity, get_items
 from profiles.recipes import (
     get_recipes,
     get_recipes_from_other,
-    get_recipes_from_ressources,
+    get_recipes_from_resources,
     get_recipes_from_tiles,
 )
 from profiles.machines import get_machine_effects, get_machines
@@ -47,7 +47,7 @@ def construct_profile(data: dict) -> dict:
     recipes += get_recipes_from_tiles(data["tile"], planets)
 
     for r in ["resource", "plant", "tree", "fish", "asteroid-chunk"]:
-        recipes += get_recipes_from_ressources(data.get(r, {}))
+        recipes += get_recipes_from_resources(data.get(r, {}))
     for b in ["boiler", "reactor"]:
         recipes += get_recipes_from_other(data[b], fuels, heat_capacity_fluids, planets)
 
