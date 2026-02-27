@@ -93,7 +93,7 @@ def main():
         description="YABFC Profile Generator for Factorio dumps"
     )
     parser.add_argument("-i", "--input", required=True)
-    parser.add_argument("-o", "--output", default="out.json")
+    parser.add_argument("-o", "--output", default="profile.json")
 
     args = parser.parse_args()
 
@@ -102,11 +102,7 @@ def main():
         sys.exit(1)
     with open(args.input, "r") as f:
         dump = json.load(f)
-    if not os.path.exists(args.input):
-        print(f"Could not open file at: '{args.input}'")
-        sys.exit(1)
-    with open(args.input, "r") as f:
-        dump = json.load(f)
+
     profile = construct_profile(dump)
     with open(args.output, "w") as f:
         json.dump(profile, f, indent=4)
