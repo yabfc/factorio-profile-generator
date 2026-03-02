@@ -113,6 +113,13 @@ class HeatCapacityFluids:
     default_temperature: int
 
 
+@dataclasses.dataclass
+class Conveyor:
+    id: str
+    speed: int
+    features: list[MachineFeature] | None
+
+
 POWER_FACTORS = {
     "GJ": 1000 * 1000 * 1000,
     "GW": 1000 * 1000 * 1000,
