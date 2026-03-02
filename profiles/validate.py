@@ -36,16 +36,10 @@ def validate_machines(machines: list[Machine], recipes: list[Recipe]) -> bool:
     categories_recipe = set()
     categories_machine = set()
     for r in recipes:
-        categories_recipe.add(r.category)
+        if r.craftable is None:
+            categories_recipe.add(r.category)
     for m in machines:
         categories_machine |= set(m.recipeCategories)
     for id in categories_recipe.difference(categories_machine):
-        if id == "manual-harvest":
-            print(
-                f"{id} is expected to not have a machine assigned. You are the machine"
-            )
-        else:
-            print(
-                f"Recipe category does not have a machine it can be produced in: {id}"
-            )
+        print(f"Recipe category does not have a machine it can be produced in: {id}")
     return len(categories_recipe.difference(categories_machine)) == 0

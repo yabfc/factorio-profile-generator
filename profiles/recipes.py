@@ -12,16 +12,21 @@ def get_recipes_from_resources(resources: dict) -> list[Recipe]:
             continue
         minable = resource["minable"]
         category = resource.get("category", "basic-solid")
+        craftable = None
         if resource.get("type", "") in ["tree", "fish"]:
             seen.append(resource["type"])
             id = resource["type"]
             category = "manual-harvest"
+            craftable = False
         if resource.get("type", "") == "asteroid-chunk":
             category = "asteroid-collector"
         if resource.get("type", "") == "plant":
             category = "manual-harvest"
+            craftable = False
 
-        tmp = Recipe(id, [], [], minable["mining_time"], category, 10, True, None)
+        tmp = Recipe(
+            id, [], [], minable["mining_time"], category, 10, True, None, craftable
+        )
         if "required_fluid" in minable:
             tmp.inp.append(
                 BaseItemIo(minable["required_fluid"], minable["fluid_amount"])
@@ -65,6 +70,7 @@ def get_recipes_from_tiles(tiles: dict, planets: list[Planet]) -> list[Recipe]:
                 10,
                 True,
                 [f"planet:{planet}" for planet in planets],
+                None,
             )
         )
     return out
@@ -146,6 +152,7 @@ def get_recipes_from_other(
                     10,
                     True,
                     limitations,
+                    None,
                 )
             )
 
@@ -168,7 +175,7 @@ def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
             prio = 90
         else:
             prio = 10
-        tmp = Recipe(id, [], [], duration, category, prio, True, None)
+        tmp = Recipe(id, [], [], duration, category, prio, True, None, None)
         if "surface_conditions" in recipe:
             tmp.limitations = get_allowed_planets(recipe["surface_conditions"], planets)
         for ingredient in recipe["ingredients"]:

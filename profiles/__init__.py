@@ -25,6 +25,7 @@ class Recipe:
     priority: int
     available: bool
     limitations: list[str] | None
+    craftable: bool | None
 
 
 @dataclasses.dataclass
