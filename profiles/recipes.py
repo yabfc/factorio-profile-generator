@@ -33,7 +33,9 @@ def get_recipes_from_resources(resources: dict) -> list[Recipe]:
                 amount = (
                     result["amount_min"] if "amount_min" in result else result["amount"]
                 )
-                tmp.out.append(BaseItemIo(result["name"], amount))
+                tmp.out.append(
+                    BaseItemIo(result["name"], amount * result.get("probability", 1))
+                )
         elif "result" in minable:
             tmp.out.append(BaseItemIo(minable["result"], 1))
         out.append(tmp)
@@ -172,6 +174,10 @@ def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
         for ingredient in recipe["ingredients"]:
             tmp.inp.append(BaseItemIo(ingredient["name"], ingredient["amount"]))
         for result in recipe["results"]:
-            tmp.out.append(BaseItemIo(result["name"], result["amount"]))
+            tmp.out.append(
+                BaseItemIo(
+                    result["name"], result["amount"] * result.get("probability", 1)
+                )
+            )
         out.append(tmp)
     return out
