@@ -75,8 +75,8 @@ def construct_profile(data: dict) -> dict:
     conveyors = get_conveyors(data["transport-belt"])
 
     settings = Settings(
-        default_duration=1,
-        all_recipes_unlocked=True,
+        defaultDuration=1,
+        allRecipesUnlocked=True,
         limitations=[f"planet:{p.id}" for p in planets] if len(planets) > 1 else None,
     )
     validate_recipes(recipes)
