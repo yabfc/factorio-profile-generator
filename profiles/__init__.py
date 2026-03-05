@@ -121,6 +121,13 @@ class Conveyor:
     features: list[MachineFeature] | None
 
 
+@dataclasses.dataclass
+class Quality:
+    id: str
+    level: int
+    next_probability: float
+
+
 POWER_FACTORS = {
     "GJ": 1000 * 1000 * 1000,
     "GW": 1000 * 1000 * 1000,

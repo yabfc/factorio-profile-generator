@@ -1,3 +1,4 @@
+from profiles.quality import add_quality_features
 from profiles.conveyor import get_conveyors
 from profiles import Settings
 import json
@@ -72,6 +73,8 @@ def construct_profile(data: dict) -> dict:
         )
         effectmodules += tmpeffectmodules
         machines += tmpmachines
+    machines, qualitymodules = add_quality_features(data.get("quality", {}), machines)
+    effectmodules += qualitymodules
     conveyors = get_conveyors(data["transport-belt"])
 
     settings = Settings(
