@@ -1,4 +1,5 @@
-from profiles import BaseItemIo, Recipe, Planet, FuelItem, HeatCapacityFluids
+from profiles.research import get_research_depths
+from profiles import BaseItemIo, Recipe, Planet, FuelItem, HeatCapacityFluids, Research
 from profiles.utils import get_allowed_planets, normalize_energy
 import fractions
 import copy
@@ -81,6 +82,7 @@ def get_recipes_from_other(
     fuels: list[FuelItem],
     fluids: dict[str, HeatCapacityFluids],
     planets: list[Planet],
+    fuel_priorities: dict[str, int],
 ) -> list[Recipe]:
     out = []
     for id, building in buildings.items():
@@ -149,7 +151,7 @@ def get_recipes_from_other(
                     out_items,
                     duration,
                     id,
-                    10,
+                    fuel_priorities.get(fuel.id, 10),
                     True,
                     limitations,
                     None,
@@ -169,12 +171,9 @@ def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
         if category == "parameters":
             continue
         duration = recipe.get("energy_required", 1)
-        if "-barrel" in id:
-            prio = 30
-        elif category == "recycling-or-hand-crafting":
-            prio = 90
-        else:
-            prio = 10
+        # will be updated in a later step based on research. Items that will keep this prio
+        # like e.g burner-inserter don't require any research, so prio 10 is fine
+        prio = 10
         tmp = Recipe(id, [], [], duration, category, prio, True, None, None)
         if "surface_conditions" in recipe:
             tmp.limitations = get_allowed_planets(recipe["surface_conditions"], planets)
@@ -187,4 +186,43 @@ def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
                 )
             )
         out.append(tmp)
+    return out
+
+
+def update_recipe_priorities(
+    recipes: list[Recipe], research: list[Research]
+) -> list[Recipe]:
+    research_depths = get_research_depths(research)
+    recipe_priorities: dict[str, int] = {}
+
+    for r in research:
+        prio = research_depths[r.id] + 10
+
+        for unlock in r.unlocks:
+            if unlock.type != "recipe":
+                continue
+
+            for recipe_id in unlock.ids:
+                recipe_priorities[recipe_id] = prio
+
+    for r in recipes:
+        if r.id in recipe_priorities.keys():
+            prio = recipe_priorities[r.id]
+            if "-barrel" in r.id:
+                prio += 50
+            r.priority = prio
+
+    return recipes
+
+
+def get_fuel_priority(recipes: list[Recipe], fuels: list[FuelItem]) -> dict[str, int]:
+    out = {}
+    fuel_ids = [f.id for f in fuels]
+    for fuel in fuel_ids:
+        prio = [r.priority for r in recipes if r.id == fuel]
+        if len(prio) == 0:
+            prio = [
+                r.priority for r in recipes if any(item.id == fuel for item in r.out)
+            ]
+        out[fuel] = min(prio)
     return out
