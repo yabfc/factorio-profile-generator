@@ -7,7 +7,7 @@ def get_machine_effects(old_effects: dict) -> list[EffectModule]:
     for id, modifier in old_effects.items():
         if not id.split("-")[-1].isdigit():
             id += "-1"
-        tmp = EffectModule(id, [], True, True)
+        tmp = EffectModule(id, [], True, True, None)
         for eid, effect in modifier["effect"].items():
             # adding 1 so we get instead of e.g 0.5 for +50%, simply 1.5 so we can multiply by value later
             if "productivity" in eid:
@@ -48,7 +48,7 @@ def get_machines(
         elif machine.get("energy_consumption", None):
             requiredPower = normalize_energy(machine["energy_consumption"])
         else:
-            print(f"{id} did not have any energy consumtion field. Defaulting to 1")
+            print(f"{id} did not have any energy consumption field. Defaulting to 1")
             requiredPower = 1
         if machine.get("passive_energy_usage", None):
             requiredPower += normalize_energy(machine["passive_energy_usage"])
@@ -87,6 +87,7 @@ def get_machines(
                         True,
                     )
                 ],
+                True,
                 True,
                 True,
             )
