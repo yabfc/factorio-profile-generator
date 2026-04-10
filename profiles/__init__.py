@@ -59,7 +59,6 @@ class Modifier:
     id: str
     value: float
     modifiable: bool
-    onlyOutputScales: bool
 
 
 @dataclasses.dataclass
