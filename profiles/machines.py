@@ -1,4 +1,11 @@
-from profiles import EffectModule, Planet, Machine, MachineFeature, Modifier
+from profiles import (
+    EffectModule,
+    Planet,
+    Machine,
+    MachineFeature,
+    Modifier,
+    FixedEffectModule,
+)
 from profiles.utils import get_allowed_planets, normalize_energy
 
 
@@ -7,7 +14,7 @@ def get_machine_effects(old_effects: dict) -> list[EffectModule]:
     for id, modifier in old_effects.items():
         if not id.split("-")[-1].isdigit():
             id += "-1"
-        tmp = EffectModule(id, [], True, True, None)
+        tmp = FixedEffectModule(id, [])
         for eid, effect in modifier["effect"].items():
             # adding 1 so we get instead of e.g 0.5 for +50%, simply 1.5 so we can multiply by value later
             tmp.modifiers.append(Modifier(eid, 1 + effect, False))
@@ -74,7 +81,7 @@ def get_machines(
             tmp.features.append(
                 MachineFeature("crafting-speed", 0, [f"crafting-speed-{id}"], True)
             )
-            craft_effect = EffectModule(
+            craft_effect = FixedEffectModule(
                 f"crafting-speed-{id}",
                 [
                     Modifier(
@@ -83,9 +90,7 @@ def get_machines(
                         False,
                     )
                 ],
-                True,
-                True,
-                True,
+                hidden=True,
             )
             effects.append(craft_effect)
         out.append(tmp)

@@ -62,12 +62,34 @@ class Modifier:
 
 
 @dataclasses.dataclass
-class EffectModule:
+class BaseEffectModule:
     id: str
     modifiers: list[Modifier]
-    perSlot: bool
-    available: bool
-    hidden: bool | None
+    available: bool = dataclasses.field(default=True, kw_only=True)
+    hidden: bool | None = dataclasses.field(default=None, kw_only=True)
+
+
+@dataclasses.dataclass
+class FixedEffectModule(BaseEffectModule):
+    type: Literal["fixed"] = "fixed"
+
+
+@dataclasses.dataclass
+class ModifiableEffectModule(BaseEffectModule):
+    minValue: float
+    maxValue: float
+    type: Literal["modifiable"] = "modifiable"
+
+
+@dataclasses.dataclass
+class SteppedEffectModule(BaseEffectModule):
+    minValue: float
+    maxValue: float
+    step: float
+    type: Literal["stepped"] = "stepped"
+
+
+EffectModule = Union[FixedEffectModule, ModifiableEffectModule, SteppedEffectModule]
 
 
 @dataclasses.dataclass
