@@ -58,7 +58,6 @@ class Machine:
 class Modifier:
     id: str
     value: float
-    modifiable: bool
 
 
 @dataclasses.dataclass

@@ -17,7 +17,7 @@ def get_machine_effects(old_effects: dict) -> list[EffectModule]:
         tmp = FixedEffectModule(id, [])
         for eid, effect in modifier["effect"].items():
             # adding 1 so we get instead of e.g 0.5 for +50%, simply 1.5 so we can multiply by value later
-            tmp.modifiers.append(Modifier(eid, 1 + effect, False))
+            tmp.modifiers.append(Modifier(eid, 1 + effect))
         out.append(tmp)
     return out
 
@@ -87,7 +87,6 @@ def get_machines(
                     Modifier(
                         "speed",
                         machine["crafting_speed"],
-                        False,
                     )
                 ],
                 hidden=True,
