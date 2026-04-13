@@ -136,8 +136,9 @@ class HeatCapacityFluids:
 
 
 @dataclasses.dataclass
-class Conveyor:
+class Logistic:
     id: str
+    type: str
     speed: int
     features: list[MachineFeature] | None
 

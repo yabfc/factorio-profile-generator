@@ -1,4 +1,4 @@
-from profiles.conveyor import get_conveyors
+from profiles.logistics import get_conveyors
 from profiles import Settings
 import json
 import sys
@@ -81,7 +81,7 @@ def construct_profile(data: dict) -> dict:
         )
         effectmodules += tmpeffectmodules
         machines += tmpmachines
-    conveyors = get_conveyors(data["transport-belt"])
+    logistics = get_conveyors(data["transport-belt"])
 
     settings = Settings(
         defaultDuration=1,
@@ -101,7 +101,7 @@ def construct_profile(data: dict) -> dict:
             "machines": dump(machines),
             "machineEffects": dump(effectmodules),
             "research": dump(research),
-            "conveyors": dump(conveyors),
+            "logistics": dump(logistics),
             "settings": dump(settings),
         }
     )
