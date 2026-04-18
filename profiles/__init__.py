@@ -63,6 +63,7 @@ class Modifier:
 @dataclasses.dataclass
 class BaseEffectModule:
     id: str
+    name: str | None = dataclasses.field(default=None, kw_only=True)
     modifiers: list[Modifier]
     available: bool = dataclasses.field(default=True, kw_only=True)
     hidden: bool | None = dataclasses.field(default=None, kw_only=True)

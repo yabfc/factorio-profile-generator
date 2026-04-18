@@ -9,7 +9,9 @@ def add_quality_features(
         if id == "quality-unknown":
             continue
         speed = Modifier("speed", 1 + 0.3 * q["level"])
-        modules.append(FixedEffectModule(f"quality-{id}", [speed]))
+        modules.append(
+            FixedEffectModule(f"quality-{id}", [speed], name=id.title(), hidden=True)
+        )
     module_ids = [m.id for m in modules]
     # no need to add a single quality feature
     if len(module_ids) <= 1:
