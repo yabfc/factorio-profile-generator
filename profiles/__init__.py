@@ -58,16 +58,37 @@ class Machine:
 class Modifier:
     id: str
     value: float
-    modifiable: bool
-    onlyOutputScales: bool
 
 
 @dataclasses.dataclass
-class EffectModule:
+class BaseEffectModule:
     id: str
     modifiers: list[Modifier]
-    perSlot: bool
-    available: bool
+    available: bool = dataclasses.field(default=True, kw_only=True)
+    hidden: bool | None = dataclasses.field(default=None, kw_only=True)
+
+
+@dataclasses.dataclass
+class FixedEffectModule(BaseEffectModule):
+    type: Literal["fixed"] = "fixed"
+
+
+@dataclasses.dataclass
+class ModifiableEffectModule(BaseEffectModule):
+    minValue: float
+    maxValue: float
+    type: Literal["modifiable"] = "modifiable"
+
+
+@dataclasses.dataclass
+class SteppedEffectModule(BaseEffectModule):
+    minValue: float
+    maxValue: float
+    step: float
+    type: Literal["stepped"] = "stepped"
+
+
+EffectModule = Union[FixedEffectModule, ModifiableEffectModule, SteppedEffectModule]
 
 
 @dataclasses.dataclass
@@ -115,8 +136,9 @@ class HeatCapacityFluids:
 
 
 @dataclasses.dataclass
-class Conveyor:
+class Logistic:
     id: str
+    type: str
     speed: int
     features: list[MachineFeature] | None
 

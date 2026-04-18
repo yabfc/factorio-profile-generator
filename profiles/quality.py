@@ -1,15 +1,15 @@
-from profiles import Machine, EffectModule, Modifier, MachineFeature
+from profiles import Machine, Modifier, MachineFeature, FixedEffectModule
 
 
 def add_quality_features(
     quality: dict, machines: list[Machine]
-) -> tuple[list[Machine], list[EffectModule]]:
+) -> tuple[list[Machine], list[FixedEffectModule]]:
     modules = []
     for id, q in quality.items():
         if id == "quality-unknown":
             continue
-        speed = Modifier("speed", 1 + 0.3 * q["level"], False, False)
-        modules.append(EffectModule(f"quality-{id}", [speed], False, True))
+        speed = Modifier("speed", 1 + 0.3 * q["level"])
+        modules.append(FixedEffectModule(f"quality-{id}", [speed]))
     module_ids = [m.id for m in modules]
     feature = MachineFeature("quality-tiers", 0, module_ids, None)
     # no drills, asteroid-collector, heating-tower

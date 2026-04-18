@@ -1,5 +1,5 @@
 from profiles.quality import add_quality_features
-from profiles.conveyor import get_conveyors
+from profiles.logistics import get_conveyors
 from profiles import Settings
 import json
 import sys
@@ -10,6 +10,8 @@ from profiles.recipes import (
     get_recipes_from_other,
     get_recipes_from_resources,
     get_recipes_from_tiles,
+    update_recipe_priorities,
+    get_fuel_priority,
 )
 from profiles.machines import get_machine_effects, get_machines
 from profiles.research import get_research
@@ -24,6 +26,8 @@ def construct_profile(data: dict) -> dict:
     )
     planets = get_planets(data.get("planet", {}), default_pressure)
     planets += get_planets(data.get("surface", {}), default_pressure)
+
+    research = get_research(data["technology"])
 
     items = get_items(data["item"], ["rocket-part"])
     items += get_items(data["fluid"], [])
@@ -51,11 +55,16 @@ def construct_profile(data: dict) -> dict:
 
     for r in ["resource", "plant", "tree", "fish", "asteroid-chunk"]:
         recipes += get_recipes_from_resources(data.get(r, {}))
+
+    recipes = update_recipe_priorities(recipes, research)
+    fuel_priorities = get_fuel_priority(recipes, fuels)
+
     for b in ["boiler", "reactor"]:
-        recipes += get_recipes_from_other(data[b], fuels, heat_capacity_fluids, planets)
+        recipes += get_recipes_from_other(
+            data[b], fuels, heat_capacity_fluids, planets, fuel_priorities
+        )
 
     effectmodules = get_machine_effects(data["module"])
-    research = get_research(data["technology"])
 
     machines = []
     for part in [
@@ -75,7 +84,7 @@ def construct_profile(data: dict) -> dict:
         machines += tmpmachines
     machines, qualitymodules = add_quality_features(data.get("quality", {}), machines)
     effectmodules += qualitymodules
-    conveyors = get_conveyors(data["transport-belt"])
+    logistics = get_conveyors(data["transport-belt"])
 
     settings = Settings(
         defaultDuration=1,
@@ -95,7 +104,7 @@ def construct_profile(data: dict) -> dict:
             "machines": dump(machines),
             "machineEffects": dump(effectmodules),
             "research": dump(research),
-            "conveyors": dump(conveyors),
+            "logistics": dump(logistics),
             "settings": dump(settings),
         }
     )

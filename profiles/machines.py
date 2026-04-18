@@ -1,4 +1,11 @@
-from profiles import EffectModule, Planet, Machine, MachineFeature, Modifier
+from profiles import (
+    EffectModule,
+    Planet,
+    Machine,
+    MachineFeature,
+    Modifier,
+    FixedEffectModule,
+)
 from profiles.utils import get_allowed_planets, normalize_energy
 
 
@@ -7,13 +14,10 @@ def get_machine_effects(old_effects: dict) -> list[EffectModule]:
     for id, modifier in old_effects.items():
         if not id.split("-")[-1].isdigit():
             id += "-1"
-        tmp = EffectModule(id, [], True, True)
+        tmp = FixedEffectModule(id, [])
         for eid, effect in modifier["effect"].items():
             # adding 1 so we get instead of e.g 0.5 for +50%, simply 1.5 so we can multiply by value later
-            if "productivity" in eid:
-                tmp.modifiers.append(Modifier(eid, 1 + effect, False, True))
-            else:
-                tmp.modifiers.append(Modifier(eid, 1 + effect, False, False))
+            tmp.modifiers.append(Modifier(eid, 1 + effect))
         out.append(tmp)
     return out
 
@@ -48,7 +52,7 @@ def get_machines(
         elif machine.get("energy_consumption", None):
             requiredPower = normalize_energy(machine["energy_consumption"])
         else:
-            print(f"{id} did not have any energy consumtion field. Defaulting to 1")
+            print(f"{id} did not have any energy consumption field. Defaulting to 1")
             requiredPower = 1
         if machine.get("passive_energy_usage", None):
             requiredPower += normalize_energy(machine["passive_energy_usage"])
@@ -77,18 +81,15 @@ def get_machines(
             tmp.features.append(
                 MachineFeature("crafting-speed", 0, [f"crafting-speed-{id}"], True)
             )
-            craft_effect = EffectModule(
+            craft_effect = FixedEffectModule(
                 f"crafting-speed-{id}",
                 [
                     Modifier(
                         "speed",
                         machine["crafting_speed"],
-                        False,
-                        True,
                     )
                 ],
-                True,
-                True,
+                hidden=True,
             )
             effects.append(craft_effect)
         out.append(tmp)
