@@ -14,7 +14,7 @@ def add_quality_features(
     # no need to add a single quality feature
     if len(module_ids) <= 1:
         return (machines, [])
-    feature = MachineFeature("quality-tiers", 0, module_ids, None)
+    feature = MachineFeature("quality-tiers", 0, module_ids, True)
     # no drills, asteroid-collector, heating-tower
     for m in machines:
         if "mining-drill" in m.id or m.id in ["asteroid-collector", "heating-tower"]:
