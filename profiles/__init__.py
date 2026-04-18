@@ -63,6 +63,7 @@ class Modifier:
 @dataclasses.dataclass
 class BaseEffectModule:
     id: str
+    name: str | None = dataclasses.field(default=None, kw_only=True)
     modifiers: list[Modifier]
     available: bool = dataclasses.field(default=True, kw_only=True)
     hidden: bool | None = dataclasses.field(default=None, kw_only=True)
@@ -141,6 +142,13 @@ class Logistic:
     type: str
     speed: int
     features: list[MachineFeature] | None
+
+
+@dataclasses.dataclass
+class Quality:
+    id: str
+    level: int
+    next_probability: float
 
 
 POWER_FACTORS = {
