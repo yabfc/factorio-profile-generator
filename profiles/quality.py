@@ -11,6 +11,9 @@ def add_quality_features(
         speed = Modifier("speed", 1 + 0.3 * q["level"])
         modules.append(FixedEffectModule(f"quality-{id}", [speed]))
     module_ids = [m.id for m in modules]
+    # no need to add a single quality feature
+    if len(module_ids) <= 1:
+        return (machines, [])
     feature = MachineFeature("quality-tiers", 0, module_ids, None)
     # no drills, asteroid-collector, heating-tower
     for m in machines:
