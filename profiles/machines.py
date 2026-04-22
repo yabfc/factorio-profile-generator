@@ -57,6 +57,12 @@ def get_machines(
         if machine.get("passive_energy_usage", None):
             requiredPower += normalize_energy(machine["passive_energy_usage"])
 
+        # https://lua-api.factorio.com/latest/prototypes/CraftingMachinePrototype.html#energy_source
+        if machine.get("energy_source", {}).get("drain", None):
+            requiredPower += normalize_energy(machine["energy_source"]["drain"])
+        else:
+            requiredPower += requiredPower // 30
+
         categories = machine.get("crafting_categories", [])
         categories += machine.get("resource_categories", [])
         if len(categories) == 0:
