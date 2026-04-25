@@ -25,11 +25,15 @@ def validate_items(items: list[Item], recipes: list[Recipe]) -> bool:
     for r in recipes:
         ids_recipe |= set([i.id for i in r.inp])
         ids_recipe |= set([i.id for i in r.out])
+    dupe = False
     for i in items:
+        if i.id in ids_item:
+            print(f"Item is a duplicate: {i.id}")
+            dupe = True
         ids_item.add(i.id)
     for id in ids_recipe.difference(ids_item):
         print(f"Item does not exist but can be produced: {id}")
-    return len(ids_recipe.difference(ids_item)) == 0
+    return len(ids_recipe.difference(ids_item)) == 0 or dupe
 
 
 def validate_machines(machines: list[Machine], recipes: list[Recipe]) -> bool:
