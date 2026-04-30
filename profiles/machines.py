@@ -5,12 +5,21 @@ from profiles import (
     MachineFeature,
     Modifier,
     FixedEffectModule,
+    LimitedEffectModule,
 )
 from profiles.utils import get_allowed_planets, normalize_energy
 
+CONSUMPTION_LIMIT = LimitedEffectModule(
+    "consumption-limit",
+    [Modifier("consumption", value=0)],
+    minValue=0.2,
+    maxValue=None,
+    hidden=True,
+)
+
 
 def get_machine_effects(old_effects: dict) -> list[EffectModule]:
-    out = []
+    out: list[EffectModule] = [CONSUMPTION_LIMIT]
     for id, modifier in old_effects.items():
         if not id.split("-")[-1].isdigit():
             id += "-1"
@@ -27,7 +36,7 @@ def get_allowed_effect_modules(
 ) -> list[str]:
     out = []
     for module in effect_modules:
-        if "crafting-speed" in module.id:
+        if "crafting-speed" in module.id or module.hidden:
             continue
         used_effects = set([m.id for m in module.modifiers])
         if used_effects.issubset(set(allowed_effects)):
@@ -82,6 +91,9 @@ def get_machines(
                     get_allowed_effect_modules(allowed_effects, effectModules),
                     None,
                 )
+            )
+            tmp.features.append(
+                MachineFeature("limit", 0, [CONSUMPTION_LIMIT.id], True)
             )
         if "crafting_categories" in machine:
             tmp.features.append(

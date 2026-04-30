@@ -89,7 +89,16 @@ class SteppedEffectModule(BaseEffectModule):
     type: Literal["stepped"] = "stepped"
 
 
-EffectModule = Union[FixedEffectModule, ModifiableEffectModule, SteppedEffectModule]
+@dataclasses.dataclass
+class LimitedEffectModule(BaseEffectModule):
+    minValue: float | None
+    maxValue: float | None
+    type: Literal["limited"] = "limited"
+
+
+EffectModule = Union[
+    FixedEffectModule, ModifiableEffectModule, SteppedEffectModule, LimitedEffectModule
+]
 
 
 @dataclasses.dataclass
