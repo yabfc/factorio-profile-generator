@@ -16,8 +16,10 @@ def get_research(old_tech: dict) -> list[Research]:
             if utype == "unlock-recipe":
                 unlocks.append(UnlockRecipe("recipe", vals))
             # TODO add other types like producitvity effects
-
-        out.append(Research(id, unlocks, tech.get("prerequisites", None)))
+        prerequisites = tech.get("prerequisites", None)
+        if prerequisites == {}:
+            prerequisites = None
+        out.append(Research(id, unlocks, prerequisites))
     return out
 
 

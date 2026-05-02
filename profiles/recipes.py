@@ -179,10 +179,12 @@ def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
             tmp.limitations = get_allowed_planets(recipe["surface_conditions"], planets)
         for ingredient in recipe["ingredients"]:
             tmp.inp.append(BaseItemIo(ingredient["name"], ingredient["amount"]))
-        for result in recipe["results"]:
+        for result in recipe.get("results", []):
             tmp.out.append(
                 BaseItemIo(
-                    result["name"], result["amount"] * result.get("probability", 1)
+                    result["name"],
+                    result.get("amount", result.get("amount_min", 0))
+                    * result.get("probability", 1),
                 )
             )
         out.append(tmp)
