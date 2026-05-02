@@ -1,7 +1,7 @@
-from profiles import Recipe, Item, Machine
+from profiles import Recipe, Item, Machine, BaseItemIo
 
 
-def validate_recipes(recipes: list[Recipe]) -> bool:
+def validate_recipes(recipes: list[Recipe], autofix: bool) -> list[Recipe]:
     ids_all = set()
     ids_in = set()
     ids_out = set()
@@ -15,25 +15,45 @@ def validate_recipes(recipes: list[Recipe]) -> bool:
         ids_out |= set([i.id for i in r.out])
         ids_all |= ids_in | ids_out
     for id in ids_in.difference(ids_out):
-        print(f"Item can't be produced: {id}")
-    return len(ids_in.difference(ids_out)) == 0
+        if autofix:
+            recipes.append(
+                Recipe(
+                    id,
+                    [],
+                    [BaseItemIo(id, 1)],
+                    1,
+                    id,
+                    10,
+                    True,
+                    None,
+                    False,
+                )
+            )
+            print(f"Added dummy recipe for: {id}")
+        else:
+            print(f"Item can't be produced: {id}")
+    return recipes
 
 
-def validate_items(items: list[Item], recipes: list[Recipe]) -> bool:
+def validate_items(
+    items: list[Item], recipes: list[Recipe], autofix: bool
+) -> list[Item]:
     ids_recipe = set()
     ids_item = set()
     for r in recipes:
         ids_recipe |= set([i.id for i in r.inp])
         ids_recipe |= set([i.id for i in r.out])
-    dupe = False
     for i in items:
         if i.id in ids_item:
             print(f"Item is a duplicate: {i.id}")
-            dupe = True
         ids_item.add(i.id)
     for id in ids_recipe.difference(ids_item):
-        print(f"Item does not exist but can be produced: {id}")
-    return len(ids_recipe.difference(ids_item)) == 0 or dupe
+        if autofix:
+            items.append(Item(id, "item", id, 0))
+            print(f"Added dummy item for: {id}")
+        else:
+            print(f"Item does not exist but can be produced: {id}")
+    return items
 
 
 def validate_machines(machines: list[Machine], recipes: list[Recipe]) -> bool:

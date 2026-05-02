@@ -64,7 +64,7 @@ The script will dump the generated profile in the current working directory in t
 ### Example help output
 
 ```
-usage: main.py [-h] -i INPUT [-o OUTPUT]
+usage: main.py [-h] -i INPUT [-o OUTPUT] [-a]
 
 YABFC Profile Generator for Factorio dumps
 
@@ -72,6 +72,7 @@ options:
   -h, --help            show this help message and exit
   -i INPUT, --input INPUT
   -o OUTPUT, --output OUTPUT  (defaults to profile.json)
+  -a, --auto-fix        Automatically add missing items / recipes as dummy
 ```
 
 ## Contributing

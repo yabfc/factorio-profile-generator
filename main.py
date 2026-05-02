@@ -20,7 +20,7 @@ from profiles.utils import purge_optional_fields, dump, get_planets
 import argparse
 
 
-def construct_profile(data: dict) -> dict:
+def construct_profile(data: dict, autofix: bool) -> dict:
     default_pressure = (
         data.get("surface-property", {}).get("pressure", {}).get("default_value", 1000)
     )
@@ -91,8 +91,8 @@ def construct_profile(data: dict) -> dict:
         allRecipesUnlocked=True,
         limitations=[f"planet:{p.id}" for p in planets] if len(planets) > 1 else None,
     )
-    validate_recipes(recipes)
-    validate_items(items, recipes)
+    recipes = validate_recipes(recipes, autofix)
+    items = validate_items(items, recipes, autofix)
     validate_machines(machines, recipes)
 
     return purge_optional_fields(
@@ -116,7 +116,12 @@ def main():
     )
     parser.add_argument("-i", "--input", required=True)
     parser.add_argument("-o", "--output", default="profile.json")
-
+    parser.add_argument(
+        "-a",
+        "--auto-fix",
+        action="store_true",
+        help="Automatically add missing items / recipes as dummy",
+    )
     args = parser.parse_args()
 
     if not os.path.exists(args.input):
@@ -125,7 +130,7 @@ def main():
     with open(args.input, "r") as f:
         dump = json.load(f)
 
-    profile = construct_profile(dump)
+    profile = construct_profile(dump, args.auto_fix)
     with open(args.output, "w") as f:
         json.dump(profile, f, indent=4)
 
