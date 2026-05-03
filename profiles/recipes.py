@@ -170,7 +170,7 @@ def get_recipes(old_recipes: dict, planets: list[Planet]) -> list[Recipe]:
         category = recipe.get("category", "crafting")
         if category == "parameters":
             continue
-        duration = recipe.get("energy_required", 1)
+        duration = recipe.get("energy_required", 0.5)
         # will be updated in a later step based on research. Items that will keep this prio
         # like e.g burner-inserter don't require any research, so prio 10 is fine
         prio = 10
