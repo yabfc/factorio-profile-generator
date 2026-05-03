@@ -67,6 +67,7 @@ class BaseEffectModule:
     modifiers: list[Modifier]
     available: bool = dataclasses.field(default=True, kw_only=True)
     hidden: bool | None = dataclasses.field(default=None, kw_only=True)
+    allowedEffects: list[str] | None = dataclasses.field(default=None, kw_only=True)
 
 
 @dataclasses.dataclass
@@ -170,3 +171,11 @@ POWER_FACTORS = {
     "W": 1,
     "J": 1,
 }
+
+MODIFIER_TYPES = [
+    "speed",
+    "productivity",
+    "quality",
+    "consumption",
+    "pollution",
+]

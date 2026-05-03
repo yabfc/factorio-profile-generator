@@ -82,8 +82,9 @@ def construct_profile(data: dict, autofix: bool) -> dict:
         )
         effectmodules += tmpeffectmodules
         machines += tmpmachines
-    machines, qualitymodules = add_quality_features(data.get("quality", {}), machines)
-    effectmodules += qualitymodules
+    machines, effectmodules = add_quality_features(
+        data.get("quality", {}), machines, effectmodules
+    )
     logistics = get_conveyors(data["transport-belt"])
 
     settings = Settings(
