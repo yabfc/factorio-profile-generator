@@ -17,6 +17,18 @@ CONSUMPTION_LIMIT = LimitedEffectModule(
     hidden=True,
 )
 
+# https://lua-api.factorio.com/latest/prototypes/CraftingMachinePrototype.html#energy_source
+DEFAULT_DRAIN = FixedEffectModule(
+    "idle-default",
+    [
+        Modifier(
+            "consumption",
+            0.03333333333333333,
+        )
+    ],
+    hidden=True,
+)
+
 
 def get_machine_effects(old_effects: dict) -> list[EffectModule]:
     out: list[EffectModule] = [CONSUMPTION_LIMIT]
@@ -66,16 +78,35 @@ def get_machines(
             requiredPower += normalize_energy(machine["passive_energy_usage"])
 
         # https://lua-api.factorio.com/latest/prototypes/CraftingMachinePrototype.html#energy_source
+        idle_id = DEFAULT_DRAIN.id
         if machine.get("energy_source", {}).get("drain", None):
-            requiredPower += normalize_energy(machine["energy_source"]["drain"])
-        else:
-            requiredPower += requiredPower // 30
+            idle_power = normalize_energy(machine["energy_source"]["drain"])
+            idle_id = f"idle-{id}"
+            effects.append(
+                FixedEffectModule(
+                    f"idle-{id}",
+                    [
+                        Modifier(
+                            "consumption",
+                            idle_power / requiredPower,
+                        )
+                    ],
+                    hidden=True,
+                )
+            )
 
         categories = machine.get("crafting_categories", [])
         categories += machine.get("resource_categories", [])
         if len(categories) == 0:
             categories.append(id)
-        tmp = Machine(id, categories, requiredPower, [], True, None)
+        tmp = Machine(
+            id,
+            categories,
+            requiredPower,
+            [MachineFeature("idle", 0, [idle_id], True)],
+            True,
+            None,
+        )
         if "surface_conditions" in machine:
             tmp.limitations = get_allowed_planets(
                 machine["surface_conditions"], planets

@@ -13,7 +13,7 @@ from profiles.recipes import (
     update_recipe_priorities,
     get_fuel_priority,
 )
-from profiles.machines import get_machine_effects, get_machines
+from profiles.machines import get_machine_effects, get_machines, DEFAULT_DRAIN
 from profiles.research import get_research
 from profiles.validate import validate_recipes, validate_items, validate_machines
 from profiles.utils import purge_optional_fields, dump, get_planets
@@ -65,6 +65,7 @@ def construct_profile(data: dict, autofix: bool) -> dict:
         )
 
     effectmodules = get_machine_effects(data["module"])
+    effectmodules.append(DEFAULT_DRAIN)
 
     machines = []
     for part in [
